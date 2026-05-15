@@ -1,138 +1,194 @@
 const mineflayer = require('mineflayer')
+const { WebSocketServer } = require('ws')
 
-const HOST = 'allaysmp.pro'
-const PORT = 25565
+const PORT_WS = process.env.PORT || 8080
 const PASSWORD = 'kurtallen'
 
-let running = true
-const bots = []
+const wss = new WebSocketServer({ port: PORT_WS })
 
-function createBot(id) {
+const bots = {}
 
-    const bot = mineflayer.createBot({
-        host: HOST,
-        port: PORT,
-        username: `KurtOnTop${id}`
+function createBot(config, client, id) {
+
+  let bot
+
+  try {
+
+    bot = mineflayer.createBot({
+      host: config.host,
+      port: config.port,
+      username: config.username,
+      auth: config.auth,
+      version: false,
+      skipValidation: true
     })
 
-    bots.push(bot)
+    bots[id] = bot
+
+    console.log(`Connecting ${id}...`)
+
+    if (client) {
+      client.send(JSON.stringify({
+        event: 'log',
+        level: 'INFO',
+        msg: `Connecting ${id}...`
+      }))
+    }
 
     bot.once('spawn', () => {
 
-        console.log(`${bot.username} joined`)
+      console.log(`${id} spawned`)
 
-        // Register
+      // Register
+      setTimeout(() => {
+        try {
+          bot.chat(`/register ${PASSWORD} ${PASSWORD}`)
+        } catch {}
+      }, 3000)
+
+      // Login
+      setTimeout(() => {
+        try {
+          bot.chat(`/login ${PASSWORD}`)
+        } catch {}
+      }, 6000)
+
+      // Join queue
+      setTimeout(() => {
+        try {
+          bot.chat('/joinqueue economy')
+        } catch {}
+      }, 9000)
+
+      // Walk forward forever
+      setInterval(() => {
+
+        bot.setControlState('forward', true)
+
+        bot.setControlState('jump', true)
+
         setTimeout(() => {
-            bot.chat(`/register ${PASSWORD} ${PASSWORD}`)
-        }, 3000)
+          bot.setControlState('jump', false)
+        }, 500)
 
-        // Login
-        setTimeout(() => {
-            bot.chat(`/login ${PASSWORD}`)
-        }, 5000)
+      }, 4000)
 
-        // Join economy queue
-        setTimeout(() => {
-            bot.chat('/joinqueue economy')
-        }, 8000)
+      // Spam chat
+      setInterval(() => {
 
-        // Walk straight forever
-        setInterval(() => {
+        try {
+          bot.chat('KurtOnTop!')
+        } catch {}
 
-            if (!running) return
-
-            bot.setControlState('forward', true)
-
-            // Jump sometimes
-            bot.setControlState('jump', true)
-
-            setTimeout(() => {
-                bot.setControlState('jump', false)
-            }, 500)
-
-        }, 4000)
-
-        // Chat spam
-        setInterval(() => {
-
-            if (!running) return
-
-            bot.chat('KurtOnTop!')
-
-        }, 5000)
+      }, 5000)
 
     })
 
-    // Reconnect if disconnected
-    bot.on('end', () => {
-
-        console.log(`${bot.username} disconnected. Reconnecting...`)
-
-        setTimeout(() => {
-            createBot(id)
-        }, 10000)
-
+    bot.on('login', () => {
+      console.log(`${id} logged in`)
     })
 
     bot.on('kicked', (reason) => {
-        console.log(`${bot.username} kicked:`, reason)
+
+      console.log(`${id} kicked: ${reason}`)
+
+      delete bots[id]
+
     })
 
     bot.on('error', (err) => {
-        console.log(`${bot.username} error:`, err.message)
+
+      console.log(`${id} error: ${err.message}`)
+
+      delete bots[id]
+
+      // Reconnect
+      setTimeout(() => {
+
+        console.log(`Reconnecting ${id}...`)
+
+        createBot(config, client, id)
+
+      }, 10000)
+
     })
+
+    bot.on('end', () => {
+
+      console.log(`${id} disconnected`)
+
+      delete bots[id]
+
+    })
+
+  } catch (e) {
+
+    console.log(e.message)
+
+  }
 }
 
-// Start bots slowly
-function startBots() {
+wss.on('connection', (client) => {
 
-    running = true
+  console.log('Frontend connected')
 
-    console.log('Starting bots slowly...')
+  // AUTO START 100 BOTS
+  const host = 'allaysmp.pro'
+  const port = 25565
+  const count = 100
+  const delay = 3000
+  const prefix = 'KurtOnTop'
+  const auth = 'offline'
 
-    for (let i = 1; i <= 20; i++) {
+  async function launchBots() {
 
-        setTimeout(() => {
+    for (let i = 1; i <= count; i++) {
 
-            console.log(`Joining bot ${i}`)
+      await new Promise(res => setTimeout(res, delay))
 
-            createBot(i)
+      const username = `${prefix}${String(i).padStart(4, '0')}`
 
-        }, i * 3000)
+      const id = username
+
+      console.log(`Launching ${id}`)
+
+      createBot({
+        host,
+        port,
+        username,
+        auth
+      }, client, id)
 
     }
-}
+  }
 
-// Stop bots
-function stopBots() {
+  launchBots()
 
-    running = false
+  client.on('message', (raw) => {
 
-    console.log('Stopping bots...')
+    const data = JSON.parse(raw)
 
-    bots.forEach(bot => {
+    // Stop all bots
+    if (data.action === 'stop_all') {
+
+      Object.values(bots).forEach(bot => {
 
         try {
-            bot.quit()
-        } catch (e) {}
+          bot.quit()
+        } catch {}
 
-    })
-}
+      })
 
-// Auto start
-startBots()
+      for (let k in bots) {
+        delete bots[k]
+      }
 
-// Console commands
-process.stdin.on('data', (data) => {
+      console.log('All bots stopped')
 
-    const cmd = data.toString().trim().toLowerCase()
-
-    if (cmd === 'start') {
-        startBots()
     }
 
-    if (cmd === 'stop') {
-        stopBots()
-    }
+  })
 
 })
+
+console.log(`🔥 Backend running on port ${PORT_WS}`)
