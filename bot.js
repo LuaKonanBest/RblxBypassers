@@ -23,15 +23,16 @@ function createBot(id) {
         // Register
         setTimeout(() => {
             bot.chat(`/register ${PASSWORD} ${PASSWORD}`)
-        }, 3000)
+        }, 5000)
 
         // Login
         setTimeout(() => {
             bot.chat(`/login ${PASSWORD}`)
-        }, 5000)
+        }, 8000)
 
-        // Straight movement
+        // Walk straight
         setInterval(() => {
+
             if (!running) return
 
             bot.setControlState('forward', true)
@@ -43,23 +44,26 @@ function createBot(id) {
                 bot.setControlState('jump', false)
             }, 500)
 
-        }, 3000)
+        }, 4000)
 
-        // Spam chat every 5 sec
+        // Chat every 5 sec
         setInterval(() => {
+
             if (!running) return
 
             bot.chat('KurtOnTop!')
+
         }, 5000)
     })
 
     // Auto reconnect
     bot.on('end', () => {
+
         console.log(`${bot.username} disconnected. Reconnecting...`)
 
         setTimeout(() => {
             createBot(id)
-        }, 5000)
+        }, 15000)
     })
 
     bot.on('kicked', (reason) => {
@@ -71,18 +75,22 @@ function createBot(id) {
     })
 }
 
-// Start bots
+// Start bots slowly
 function startBots() {
 
     running = true
 
-    console.log('Starting bots...')
+    console.log('Starting bots slowly...')
 
-    for (let i = 1; i <= 100; i++) {
+    for (let i = 1; i <= 20; i++) {
 
         setTimeout(() => {
+
+            console.log(`Joining bot ${i}`)
+
             createBot(i)
-        }, i * 1000)
+
+        }, i * 10000) // 10 sec delay
     }
 }
 
